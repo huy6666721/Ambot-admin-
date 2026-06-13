@@ -1,0 +1,123 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({Name = "huyvip67 - Main Menu", LoadingTitle = "Loading...", LoadingSubtitle = "by huy bé"})
+
+_G.Unlocked = false
+
+-- 1. Tab Get Key
+local KeyTab = Window:CreateTab("Get Key", nil)
+KeyTab:CreateLabel("--- LIÊN HỆ ---")
+KeyTab:CreateLabel("tiktok ib.huy367 ĐỂ lấy KEY VIP")
+KeyTab:CreateLabel("---🗿-")
+
+-- Ô nhập Key to, nổi bật
+KeyTab:CreateInput({
+    Name = ">>> NHẬP KEY CỦA BẠN VÀO ĐÂY <<<",
+    PlaceholderText = "Click vào đây để nhập Key...",
+    Callback = function(v)
+        if v == "744249" and not _G.Unlocked then
+            _G.Unlocked = true
+            CreateFeaturesTab()
+            Rayfield:Notify({Title = "Thành công", Content = "Đã mở khóa toàn bộ tính năng!", Duration = 3})
+        end
+    end
+})
+
+-- Hàm tạo Tab chức năng
+function CreateFeaturesTab()
+    local Tab = Window:CreateTab("ESP & Aimbot", nil)
+    _G.ESP = false _G.Skel = false _G.Aimbot = false
+    
+    Tab:CreateToggle({Name = "Box & Line ESP", Callback = function(v) _G.ESP = v end})
+    Tab:CreateToggle({Name = "Skeleton ESP", Callback = function(v) _G.Skel = v end})
+    Tab:CreateToggle({Name = "Aimbot (Lock Head)", Callback = function(v) _G.Aimbot = v end})
+end
+
+-- Logic ESP/Aimbot
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local drawings = {}
+local joints = {{"Head", "UpperTorso"}, {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}}
+
+local function createDraw(type, color, thick)
+    local d = Drawing.new(type)
+    d.Visible = false
+    d.Color = color
+    d.Thickness = thick or 1.5
+    return d
+end
+
+RunService.RenderStepped:Connect(function()
+    if not _G.Unlocked then return end
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            if not drawings[p.Name] then 
+                drawings[p.Name] = {Box = createDraw("Square", Color3.fromRGB(0, 255, 0), 2), Line = createDraw("Line", Color3.fromRGB(0, 255, 0), 1.5), Skel = {}} 
+            end
+            
+            local headPos, on = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            
+            -- Vẽ Dây & Box
+            if _G.ESP then
+                -- Dây: Hiển thị cho tất cả (không giới hạn màn hình)
+                drawings[p.Name].Line.From = Vector2.new(Camera.ViewportSize.X/2, 0)
+                drawings[p.Name].Line.To = Vector2.new(headPos.X, headPos.Y)
+                drawings[p.Name].Line.Visible = true
+                
+                -- Box: Chỉ vẽ khi trong tầm nhìn (Tránh lỗi)
+                if on then
+                    local size = 1200 / headPos.Z
+                    drawings[p.Name].Box.Size = Vector2.new(size, size * 2)
+                    drawings[p.Name].Box.Position = Vector2.new(headPos.X - size/2, headPos.Y - size)
+                    drawings[p.Name].Box.Visible = true
+                else
+                    drawings[p.Name].Box.Visible = false
+                end
+            else
+                drawings[p.Name].Box.Visible = false
+                drawings[p.Name].Line.Visible = false
+            end
+
+            -- Vẽ Skeleton
+            for i, j in pairs(joints) do
+                if not drawings[p.Name].Skel[i] then drawings[p.Name].Skel[i] = createDraw("Line", Color3.fromRGB(0, 255, 0), 2) end
+                local p0, p1 = p.Character:FindFirstChild(j[1]), p.Character:FindFirstChild(j[2])
+                if _G.Skel and p0 and p1 then
+                    local v0, v1 = Camera:WorldToViewportPoint(p0.Position), Camera:WorldToViewportPoint(p1.Position)
+                    drawings[p.Name].Skel[i].From = Vector2.new(v0.X, v0.Y)
+                    drawings[p.Name].Skel[i].To = Vector2.new(v1.X, v1.Y)
+                    drawings[p.Name].Skel[i].Visible = true
+                else
+                    drawings[p.Name].Skel[i].Visible = false
+                end
+            end
+        elseif drawings[p.Name] then
+            drawings[p.Name].Box.Visible = false
+            drawings[p.Name].Line.Visible = false
+            for _, skel in pairs(drawings[p.Name].Skel) do skel.Visible = false end
+        end
+    end
+    
+    -- Aimbot: Luôn cập nhật người gần nhất
+    if _G.Aimbot then
+        local closest = nil
+        local minDistance = math.huge
+        local screenCenter = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                local headPos, on = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                local distanceToCenter = (Vector2.new(headPos.X, headPos.Y) - screenCenter).Magnitude
+                if distanceToCenter < minDistance then
+                    minDistance = distanceToCenter
+                    closest = p.Character.Head
+                end
+            end
+        end
+        if closest then 
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, closest.Position) 
+        end
+    end
+end)
